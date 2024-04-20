@@ -1,0 +1,109 @@
+import speech_recognition as sr
+import pyttsx3
+import datetime
+import wikipedia
+import webbrowser
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+
+# Initialize the speech recognizer and engine
+recognizer = sr.Recognizer()
+engine = pyttsx3.init()
+
+# Set voice properties to female
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[1].id)  # Index 1 usually represents a female voice
+
+# Function to speak out the response
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+# Function to listen to the user's command
+def listen():
+    with sr.Microphone() as source:
+        print("Listening...")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
+    
+    try:
+        command = recognizer.recognize_google(audio).lower()
+        print("You said:", command)
+        return command
+    except sr.UnknownValueError:
+        print("Sorry, I didn't catch that.")
+        return ""
+    except sr.RequestError as e:
+        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        return ""
+
+# Function to tell the time
+def tell_time():
+    current_time = datetime.datetime.now().strftime("%I:%M %p")
+    speak("The current time is " + current_time)
+
+# Function to search Wikipedia
+def search_wikipedia(query):
+    try:
+        result = wikipedia.summary(query, sentences=2)
+        speak("According to Wikipedia, " + result)
+    except wikipedia.exceptions.DisambiguationError as e:
+        options = e.options[:3]  # Limit options to the first three suggested articles
+        speak("There are multiple results for this query. Here are the top three:")
+        for option in options:
+            speak(option)
+    except wikipedia.exceptions.PageError as e:
+        speak("Sorry, I couldn't find any information on that topic.")
+
+# Function to open websites
+def open_website(url):
+    webbrowser.open_new_tab(url)
+
+# Function to play music from Spotify
+def play_spotify(query):
+    try:
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id='your_client_id',
+                                                       client_secret='your_client_secret',
+                                                       redirect_uri='your_redirect_uri',
+                                                       scope='user-library-read'))
+        results = sp.search(q=query, limit=1)
+        if results['tracks']['items']:
+            track_uri = results['tracks']['items'][0]['uri']
+            sp.start_playback(uris=[track_uri])
+            speak("Playing " + query + " on Spotify.")
+        else:
+            speak("Sorry, I couldn't find that song on Spotify.")
+    except Exception as e:
+        print(e)
+        speak("Sorry, I couldn't play the music.")
+
+# Function to execute commands
+def execute_command(command):
+    if "what is the time" in command:
+        tell_time()
+    elif "search wikipedia for" in command:
+        query = command.replace("search wikipedia for", "")
+        search_wikipedia(query)
+    elif "open website" in command:
+        url = command.replace("open website", "")
+        open_website(url)
+    elif "play music" in command:
+        query = command.replace("play music", "")
+        play_spotify(query)
+    elif "exit" in command:
+        speak("Goodbye!")
+        exit()
+    else:
+        speak("Sorry, I don't understand that command.")
+
+# Main function to run the voice assistant
+def main():
+    speak("Hello! I'm your voice assistant. How can I help you?")
+    
+    while True:
+        command = listen()
+        if command:
+            execute_command(command)
+
+if __name__ == "__main__":
+    main()
