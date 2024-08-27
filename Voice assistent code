@@ -1,109 +1,195 @@
-import speech_recognition as sr
-import pyttsx3
+import pyttsx3 #pip install pyttsx3
+import speech_recognition as sr #pip install speechRecognition
 import datetime
-import wikipedia
-import webbrowser
+import wikipedia #pip install wikipedia
+import selenium
+import os
+import smtplib
+import pyaudio
+import time
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 
-# Initialize the speech recognizer and engine
-recognizer = sr.Recognizer()
-engine = pyttsx3.init()
-
-# Set voice properties to female
+engine = pyttsx3.init('sapi5')
 voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[1].id)  # Index 1 usually represents a female voice
+# print(voices[1].id)
+engine.setProperty('voice', voices[1].id)
 
-# Function to speak out the response
-def speak(text):
-    engine.say(text)
-    engine.runAndWait()
+driver = None
+import pyautogui
+import time
 
-# Function to listen to the user's command
-def listen():
+def open_spotify_app():
+    # Open Spotify from the start menu (adjust the command for your OS and setup)
+    pyautogui.hotkey('win', 's')  # Open the start menu
+    time.sleep(1)
+    pyautogui.write('Spotify')  # Type Spotify in the search
+    pyautogui.press('enter')  # Open Spotify
+    time.sleep(5)  # Wait for Spotify to open
+
+def play_song(song_name):
+    # Example function to search and play a song
+    # Ensure Spotify is the active window before executing these commands
+    pyautogui.hotkey('ctrl', 'l')  # Focus the search bar
+    time.sleep(1)
+    pyautogui.write(song_name)  # Type the song name
+    pyautogui.press('enter')  # Start the search
+    time.sleep(2)
+    pyautogui.press('enter')  # Select the first result
+    time.sleep(1)
+    speak('What song would you like to play next?')
+    song_query = takeCommand().lower()
+    if 'stop' in song_query:
+        return
+    else:
+        speak(f'Searching {song_query} on Spotifi...')
+        play_song(song_query)
+        
+def sendEmail(to, content):
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.ehlo()
+    server.starttls()
+    server.login('ayushsaxena96065@gmail.com', 'Ayush2003$')
+    server.sendmail('ayushsaxena96065@gmail.com', to, content)
+    server.close()
+def byebye():
+    print("Bye Bye Sir!")
+    speak("Bye Bye Sir!")
+    os._exit(1)
+def init_driver():
+    global driver
+    if driver is None:
+        driver = webdriver.Chrome() 
+    
+    
+def wishMe():
+    hour = int(datetime.datetime.now().hour)
+    if hour>=0 and hour<12:
+        print("Good Morning!")
+        speak("Good Morning!")
+
+    elif hour>=12 and hour<18:
+        print("Good Afternoon!")
+        speak("Good Afternoon!")   
+
+    else:
+        print("Good Evening!")
+        speak("Good Evening!")  
+    print("I am Friday Sir. Please tell me how may I help you")
+    speak("I am Friday Sir. Please tell me how may I help you")       
+def takeCommand():
+    # It takes microphone input from the user and returns string output
+    r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Listening...")
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
-    
+        r.pause_threshold = 1
+        audio = r.listen(source)
     try:
-        command = recognizer.recognize_google(audio).lower()
-        print("You said:", command)
-        return command
-    except sr.UnknownValueError:
-        print("Sorry, I didn't catch that.")
-        return ""
-    except sr.RequestError as e:
-        print("Could not request results from Google Speech Recognition service; {0}".format(e))
-        return ""
-
-# Function to tell the time
-def tell_time():
-    current_time = datetime.datetime.now().strftime("%I:%M %p")
-    speak("The current time is " + current_time)
-
-# Function to search Wikipedia
-def search_wikipedia(query):
-    try:
-        result = wikipedia.summary(query, sentences=2)
-        speak("According to Wikipedia, " + result)
-    except wikipedia.exceptions.DisambiguationError as e:
-        options = e.options[:3]  # Limit options to the first three suggested articles
-        speak("There are multiple results for this query. Here are the top three:")
-        for option in options:
-            speak(option)
-    except wikipedia.exceptions.PageError as e:
-        speak("Sorry, I couldn't find any information on that topic.")
-
-# Function to open websites
-def open_website(url):
-    webbrowser.open_new_tab(url)
-
-# Function to play music from Spotify
-def play_spotify(query):
-    try:
-        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id='your_client_id',
-                                                       client_secret='your_client_secret',
-                                                       redirect_uri='your_redirect_uri',
-                                                       scope='user-library-read'))
-        results = sp.search(q=query, limit=1)
-        if results['tracks']['items']:
-            track_uri = results['tracks']['items'][0]['uri']
-            sp.start_playback(uris=[track_uri])
-            speak("Playing " + query + " on Spotify.")
-        else:
-            speak("Sorry, I couldn't find that song on Spotify.")
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en-in')
+        print(f"User said: {query}\n")
     except Exception as e:
-        print(e)
-        speak("Sorry, I couldn't play the music.")
+        print("Say that again please...")
+        return "None"
+    return query
 
-# Function to execute commands
-def execute_command(command):
-    if "what is the time" in command:
-        tell_time()
-    elif "search wikipedia for" in command:
-        query = command.replace("search wikipedia for", "")
-        search_wikipedia(query)
-    elif "open website" in command:
-        url = command.replace("open website", "")
-        open_website(url)
-    elif "play music" in command:
-        query = command.replace("play music", "")
-        play_spotify(query)
-    elif "exit" in command:
-        speak("Goodbye!")
-        exit()
-    else:
-        speak("Sorry, I don't understand that command.")
 
-# Main function to run the voice assistant
+def init_driver():
+    global driver
+    if driver is None:
+        driver = webdriver.Chrome()  # Ensure the path to your ChromeDriver is correct
+
+def speak(audio):
+    engine.say(audio)
+    engine.runAndWait()
+def open_youtube_search_and_play(query):
+    try:
+        init_driver()
+        driver.get("https://www.youtube.com")
+        time.sleep(2)  # Wait for the page to load
+
+        # Locate the search box and enter the query
+        search_box = driver.find_element(By.NAME, "search_query")
+        search_box.send_keys(query)
+        search_box.send_keys(Keys.RETURN)
+
+        time.sleep(2)  # Wait for the search results to load
+
+        # Locate and click the first video
+        first_video = driver.find_element(By.XPATH, '//*[@id="video-title"]')
+        first_video.click()
+
+    except Exception as e:
+        print("An error occurred:", e)
+
 def main():
-    speak("Hello! I'm your voice assistant. How can I help you?")
-    
-    while True:
-        command = listen()
-        if command:
-            execute_command(command)
+    try:
+        wishMe()  # Your existing wishMe function
+        while True:
+            query = takeCommand().lower()  # Your existing takeCommand function
+
+            # Logic for executing tasks based on query
+            if 'wikipedia' in query:
+                speak('Searching Wikipedia...')
+                query = query.replace("wikipedia", "")
+                results = wikipedia.summary(query, sentences=2)
+                speak("According to Wikipedia")
+                print(results)
+                speak(results)
+
+            elif 'search youtube' in query:
+                speak('What should I search on YouTube?')
+                search_query = takeCommand().lower()
+                speak(f'Searching for {search_query} on YouTube...')
+                open_youtube_search_and_play(search_query)
+                
+            elif 'open google' in query:
+                speak('Opening Google...')
+                init_driver()
+                driver.get("https://www.google.com")
+
+            elif 'open spotify' in query:
+                speak('What song would you like to play?')
+                song_query = takeCommand().lower()
+                speak(f'Searching {song_query} on Spotifi...')
+                open_spotify_app()
+                play_song(song_query)
+                
+            elif 'open code' in query:
+                codePath = "D:\\Friday.py"
+                os.startfile(codePath)
+                
+            elif 'play music' in query:
+                music_dir = 'C:\\Users\\Ayush Saxena\\OneDrive\\Desktop'
+                songs = os.listdir(music_dir)
+                print(songs)
+                os.startfile(os.path.join(music_dir, songs[0]))
+
+            elif 'the time' in query:
+                strTime = datetime.datetime.now().strftime("%H:%M:%S")
+                speak(f"Sir, the time is {strTime}")
+            elif 'bye-bye' in query:
+                byebye()
+
+            elif 'email it' in query:
+                try:
+                    speak("What should I say?")
+                    content = takeCommand()
+                    to = "ayushsaxena96065@gmail.com"
+                    sendEmail(to, content)
+                    speak("Email has been sent!")
+                except Exception as e:
+                    print(e)
+                    speak("Sorry my friend Ayush Bhai. I am not able to send this email.")
+
+    except Exception as e:
+        print("An error occurred in the main loop:", e)
+    finally:
+        if driver is not None:
+            driver.quit()  # Ensure the browser closes when the program ends
 
 if __name__ == "__main__":
     main()
