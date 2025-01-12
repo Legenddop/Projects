@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from keras.datasets import mnist
 from keras.utils import to_categorical
 from keras.models import Sequential
@@ -26,3 +27,18 @@ model.fit(x_train, y_train, epochs=10, batch_size=32, verbose=1)
 # Evaluate model
 _, accuracy = model.evaluate(x_test, y_test, verbose=0)
 print('Accuracy:', accuracy)
+
+# Predict on a random image from the test set
+random_index = np.random.randint(0, x_test.shape[0])
+random_image = x_test[random_index]
+random_image_reshaped = random_image.reshape(1, 28 * 28)  # Reshape for prediction
+
+# Get the prediction
+prediction = model.predict(random_image_reshaped, verbose=0)
+predicted_label = np.argmax(prediction)
+
+# Display the random test image
+plt.imshow(random_image.reshape(28, 28), cmap='gray')
+plt.title(f"Predicted Label: {predicted_label}")
+plt.axis('off')
+plt.show()
